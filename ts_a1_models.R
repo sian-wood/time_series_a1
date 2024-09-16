@@ -286,6 +286,7 @@ res_plot(ar_10_ugo, ar_10_ugo_augment)
 ar_10_ugo_augment |> features(.innov, box_pierce)
 ar_10_ugo_augment |> features(.innov, ljung_box)
 # good!
+?Box.test
 
 # 25
 report(ar_25_ugo  <- model(ugo, AR(Unplanned.Generation.Outages~order(25))))
@@ -388,36 +389,36 @@ forecast(ar_15_pdd, h = 31) |> autoplot(pdd)
 ################################################################################
 acf(ugo$Unplanned.Generation.Outages, lag.max = 500)
 
-# 50 - elbow
-report(ma_50_ugo    <- model(ugo, ARIMA(Unplanned.Generation.Outages~ 0 + pdq(0, 0, 20) + PDQ(0, 0, 0))))
-ma_50_ugo_augment = augment(ma_50_ugo)
-res_plot(ma_50_ugo, ma_50_ugo_augment)
-mean(ma_50_ugo_augment$.innov, na.rm = TRUE)
+# 24
+report(ma_24_ugo    <- model(ugo, ARIMA(Unplanned.Generation.Outages~ 0 + pdq(0, 0,24) + PDQ(0, 0, 0))))
+ma_24_ugo_augment = augment(ma_24_ugo)
+res_plot(ma_24_ugo, ma_24_ugo_augment)
+mean(ma_24_ugo_augment$.innov, na.rm = TRUE)
 # mean is 0
 # little correlation
-ma_50_ugo_augment |> features(.innov, box_pierce)
-ma_50_ugo_augment |> features(.innov, ljung_box, dof = 365*24*0.75-2)
-saveRDS(ma_50_ugo, file = "ma_50_ugo.RDS")
+ma_24_ugo_augment |> features(.innov, box_pierce)
+ma_24_ugo_augment |> features(.innov, ljung_box)
+# saveRDS(ma_50_ugo, file = "ma_50_ugo.RDS")
 
-# 100 - starts flattening out
-report(ma_100_ugo  <- model(ugo, ARIMA(Unplanned.Generation.Outages~ 0 + pdq(0, 0, 100) + PDQ(0, 0, 0))))
-ma_100_ugo_augment = augment(ma_100_ugo)
-res_plot(ma_100_ugo, ma_100_ugo_augment)
+# 48
+report(ma_48_ugo  <- model(ugo, ARIMA(Unplanned.Generation.Outages~ 0 + pdq(0, 0, 48) + PDQ(0, 0, 0))))
+ma_48_ugo_augment = augment(ma_48_ugo)
+res_plot(ma_48_ugo, ma_48_ugo_augment)
 # mean is 0
 # little correlation
-ma_100_ugo_augment |> features(.innov, box_pierce)
-ma_100_ugo_augment |> features(.innov, ljung_box)
-saveRDS(ma_100_ugo, file = "ma_100_ugo.RDS")
-
-# 350 - highest can be fitted
-report(ma_350_ugo  <- model(ugo, ARIMA(Unplanned.Generation.Outages~ 0 + pdq(0, 0, 350) + PDQ(0, 0, 0))))
-ma_350_ugo_augment = augment(ma_350_ugo)
-res_plot(ma_350_ugo, ma_350_ugo_augment)
-# mean is 0
-# little correlation
-ma_350_ugo_augment |> features(.innov, box_pierce)
-ma_350_ugo_augment |> features(.innov, ljung_box)
-saveRDS(ma_350_ugo, file = "ma_350_ugo.RDS")
+ma_48_ugo_augment |> features(.innov, box_pierce)
+ma_48_ugo_augment |> features(.innov, ljung_box)
+saveRDS(ma_48_ugo, file = "ma_48_ugo.RDS")
+#
+# # 350 - highest can be fitted
+# report(ma_350_ugo  <- model(ugo, ARIMA(Unplanned.Generation.Outages~ 0 + pdq(0, 0, 350) + PDQ(0, 0, 0))))
+# ma_350_ugo_augment = augment(ma_350_ugo)
+# res_plot(ma_350_ugo, ma_350_ugo_augment)
+# # mean is 0
+# # little correlation
+# ma_350_ugo_augment |> features(.innov, box_pierce)
+# ma_350_ugo_augment |> features(.innov, ljung_box)
+# saveRDS(ma_350_ugo, file = "ma_350_ugo.RDS")
 
 # Can't pick up trend
 # forecast(MA_7_pdd, h = 365) |> autoplot()
@@ -427,35 +428,35 @@ saveRDS(ma_350_ugo, file = "ma_350_ugo.RDS")
 ################################################################################
 acf(pdd$Peak.Daily.Demand, lag.max = 500)
 
-# 90 - first close to zero
-report(ma_90_pdd    <- model(pdd, ARIMA(Unplanned.Generation.Outages~ 0 + pdq(0, 0, 90) + PDQ(0, 0, 0))))
-ma_90_pdd_augment = augment(ma_90_pdd)
-res_plot(ma_90_pdd, ma_90_pdd_augment)
+# 7 - first close to zero
+report(ma_7_pdd    <- model(pdd, ARIMA(Peak.Daily.Demand~ 0 + pdq(0, 0, 7) + PDQ(0, 0, 0))))
+ma_7_pdd_augment = augment(ma_7_pdd)
+res_plot(ma_7_pdd, ma_7_pdd_augment)
 # mean is 0
 # little correlation
-ma_90_pdd_augment |> features(.innov, box_pierce)
-ma_90_pdd_augment |> features(.innov, ljung_box)
-saveRDS(ma_90_pdd, file = "ma_90_pdd.RDS")
+ma_7_pdd_augment |> features(.innov, box_pierce)
+ma_7_pdd_augment |> features(.innov, ljung_box)
+# saveRDS(ma_90_pdd, file = "ma_90_pdd.RDS")
 
-# 66 - first under sig
-report(ma_66_pdd  <- model(pdd, ARIMA(Unplanned.Generation.Outages~ 0 + pdq(0, 0, 66) + PDQ(0, 0, 0))))
-ma_66_pdd_augment = augment(ma_66_pdd)
-res_plot(ma_66_pdd, ma_66_pdd_augment)
+# 14 - first under sig
+report(ma_14_pdd  <- model(pdd, ARIMA(Peak.Daily.Demand~ 0 + pdq(0, 0, 14) + PDQ(0, 0, 0))))
+ma_14_pdd_augment = augment(ma_14_pdd)
+res_plot(ma_14_pdd, ma_14_pdd_augment)
 # mean is 0
 # little correlation
-ma_66_pdd_augment |> features(.innov, box_pierce)
-ma_66_pdd_augment |> features(.innov, ljung_box)
-saveRDS(ma_66_pdd, file = "ma_66_pdd.RDS")
+ma_14_pdd_augment |> features(.innov, box_pierce)
+ma_14_pdd_augment |> features(.innov, ljung_box)
+# saveRDS(ma_66_pdd, file = "ma_66_pdd.RDS")
 
 # 275 - second close to zero
-report(ma_275_pdd  <- model(pdd, ARIMA(Unplanned.Generation.Outages~ 0 + pdq(0, 0, 275) + PDQ(0, 0, 0))))
-ma_275_pdd_augment = augment(ma_275_pdd)
-res_plot(ma_275_pdd, ma_275_pdd_augment)
-# mean is 0
-# little correlation
-ma_275_pdd_augment |> features(.innov, box_pierce)
-ma_275_pdd_augment |> features(.innov, ljung_box)
-saveRDS(ma_275_pdd, file = "ma_275_pdd.RDS")
+# report(ma_275_pdd  <- model(pdd, ARIMA(Peak.Daily.Demand~ 0 + pdq(0, 0, 275) + PDQ(0, 0, 0))))
+# ma_275_pdd_augment = augment(ma_275_pdd)
+# res_plot(ma_275_pdd, ma_275_pdd_augment)
+# # mean is 0
+# # little correlation
+# ma_275_pdd_augment |> features(.innov, box_pierce)
+# ma_275_pdd_augment |> features(.innov, ljung_box)
+# saveRDS(ma_275_pdd, file = "ma_275_pdd.RDS")
 
 # Can't pick up trend
 # forecast(, h = 365) |> autoplot()
