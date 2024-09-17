@@ -4,5 +4,5 @@
 
 # List of necessary packages
 packages <- c("tidyverse", "ggplot2", "dplyr", "tidyr", "reshape2", "ggcorrplot",
-              "fpp3", "astsa", "tseries", "xtable")
+              "fpp3", "astsa", "tseries", "xtable", "forecast", "gridExtra")
 saveRDS(packages, "packages_needed.RDS")

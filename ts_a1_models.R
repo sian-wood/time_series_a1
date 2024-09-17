@@ -33,7 +33,55 @@ res_plot = function(data, data_augment){
   plots
 }
 
+res_plot2 = function(data, resids){
+  if(colnames(data)[1] == "Day"){
+    df = data$Day |> cbind(as.data.frame(matrix(c(resids), ncol = 1)))
+  }
+  else{
+    df = data$Date.Time.Hour.Beginning |> cbind(as.data.frame(matrix(c(resids), ncol = 1)))
+  }
+  colnames(df) = c("Day", "Residual")
+  tsib = as_tsibble(as_tibble(df))
+  time_plot = autoplot(tsib) +
+    labs(x = "Day", y = "Residuals")+
+    theme(axis.text=element_text(size=15),
+          axis.title=element_text(size=18))
 
+  acf_plot  = tsib |>
+    ACF(Residual) |>
+    autoplot() + labs(x = "Lag", y = "ACF")+
+    theme(axis.text=element_text(size=15),
+          axis.title=element_text(size=18))
+
+  hist = ggplot(tsib, aes(x = Residual)) +
+    geom_histogram() +
+    labs(x = "Residuals", y = "Count") +
+    theme(axis.text=element_text(size=15),
+          axis.title=element_text(size=18)) +
+    scale_x_continuous(breaks = seq(-2000, 3000, by = 2000))
+
+  grid.arrange(time_plot,
+               arrangeGrob(acf_plot, hist, ncol = 2))
+}
+
+qq = function(dat){
+  qqnorm(dat, main = "",
+         cex.axis = 1.4,
+         cex.lab = 1.3)
+  qqline(dat)
+}
+
+aic = function(loglik, p, q, type, samp_size){
+  k = 2
+  if(type == "bic"){
+    k = log(p+q)
+  }
+  aic = -2*loglik + k*(p+q)
+  if(type == "aicc"){
+    return(aic+(2*(p+q)*(p+q+1))/(samp_size-p-q-1))
+  }
+  aic
+}
 
 ################################################################################
 # UGO Benchmark
@@ -265,151 +313,147 @@ pacf(pdd$Peak.Daily.Demand, lag.max = 250, main = "")
 ################################################################################
 # AR UGO
 ################################################################################
-pacf(ugo$Unplanned.Generation.Outages)
-# bc = bind_cols(ugo,as_tibble(append(rep(NA, nrow(ugo)-length(best_stat_ugo)), best_stat_ugo)))
-
 # First 2 very sig
-report(ar_2_ugo  <- model(ugo, AR(Unplanned.Generation.Outages~order(2))))
+# report(ar_2_ugo  <- model(ugo, AR(Unplanned.Generation.Outages~order(2))))
+ar_2_ugo = readRDS(file = "ar_2_ugo.RDS")
+report(ar_2_ugo)
 ar_2_ugo_augment = augment(ar_2_ugo)
 res_plot(ar_2_ugo, ar_2_ugo_augment)
-# mean is 0
-# are correlated but not hugely
-ar_2_ugo_augment |> features(.innov, box_pierce)
+mean(ar_2_ugo_augment$.innov, na.rm = TRUE)
 ar_2_ugo_augment |> features(.innov, ljung_box)
-
-# Then 10
-report(ar_10_ugo <- model(ugo, AR(Unplanned.Generation.Outages~order(10))))
-ar_10_ugo_augment = augment(ar_10_ugo)
-res_plot(ar_10_ugo, ar_10_ugo_augment)
-# mean is 0
-# little correlation
-ar_10_ugo_augment |> features(.innov, box_pierce)
-ar_10_ugo_augment |> features(.innov, ljung_box)
-# good!
-?Box.test
+qq(ar_2_ugo_augment$.innov)
+# saveRDS(ar_2_ugo, file = "ar_2_ugo.RDS")
 
 # 25
-report(ar_25_ugo  <- model(ugo, AR(Unplanned.Generation.Outages~order(25))))
+# report(ar_25_ugo  <- model(ugo, AR(Unplanned.Generation.Outages~order(25))))
+ar_25_ugo = readRDS(file = "ar_25_ugo.RDS")
+report(ar_25_ugo)
 ar_25_ugo_augment = augment(ar_25_ugo)
 res_plot(ar_25_ugo, ar_25_ugo_augment)
-# mean is 0
-# are correlated but not hugely
-ar_25_ugo_augment |> features(.innov, box_pierce)
+mean(ar_25_ugo_augment$.innov, na.rm = TRUE)
 ar_25_ugo_augment |> features(.innov, ljung_box)
-
-# Can't pick up trend
-forecast(ar_25_ugo, h = 24*31) |> autoplot(ugo)
+qq(ar_25_ugo_augment$.innov)
+# saveRDS(ar_25_ugo, file = "ar_25_ugo.RDS")
 
 # 2000
-report(ar_2000_ugo  <- model(ugo, AR(Unplanned.Generation.Outages~order(2000))))
+# report(ar_2000_ugo  <- model(ugo, AR(Unplanned.Generation.Outages~order(2000))))
+ar_2000_ugo = readRDS(file = "ar_2000_ugo.RDS")
+report(ar_2000_ugo)
 ar_2000_ugo_augment = augment(ar_2000_ugo)
 res_plot(ar_2000_ugo, ar_2000_ugo_augment)
-# mean is 0
-# are correlated but not hugely
-ar_2000_ugo_augment |> features(.innov, box_pierce)
+mean(ar_2000_ugo_augment$.innov, na.rm = TRUE)
 ar_2000_ugo_augment |> features(.innov, ljung_box)
+qq(ar_2000_ugo_augment$.innov)
+# saveRDS(ar_2000_ugo, file = "ar_2000_ugo.RDS")
 
 # 500
-report(ar_500_ugo  <- model(ugo, AR(Unplanned.Generation.Outages~order(500))))
+# report(ar_500_ugo  <- model(ugo, AR(Unplanned.Generation.Outages~order(500))))
+ar_500_ugo = readRDS(file = "ar_500_ugo.RDS")
+report(ar_500_ugo)
 ar_500_ugo_augment = augment(ar_500_ugo)
 res_plot(ar_500_ugo, ar_500_ugo_augment)
-# mean is 0
-# are correlated but not hugely
-ar_500_ugo_augment |> features(.innov, box_pierce)
+mean(ar_500_ugo_augment$.innov, na.rm = TRUE)
 ar_500_ugo_augment |> features(.innov, ljung_box)
+qq(ar_500_ugo_augment$.innov)
+# saveRDS(ar_500_ugo, file = "ar_500_ugo.RDS")
 
 # 200
-report(ar_200_ugo  <- model(ugo, AR(Unplanned.Generation.Outages~order(200))))
+# report(ar_200_ugo  <- model(ugo, AR(Unplanned.Generation.Outages~order(200))))
+ar_200_ugo = readRDS(file = "ar_200_ugo.RDS")
+report(ar_200_ugo)
 ar_200_ugo_augment = augment(ar_200_ugo)
 res_plot(ar_200_ugo, ar_200_ugo_augment)
-# mean is 0
-# are correlated but not hugely
-ar_200_ugo_augment |> features(.innov, box_pierce)
+mean(ar_200_ugo_augment$.innov, na.rm = TRUE)
 ar_200_ugo_augment |> features(.innov, ljung_box)
+qq(ar_200_ugo_augment$.innov)
+# saveRDS(ar_200_ugo, file = "ar_200_ugo.RDS")
 
 ################################################################################
 # AR PDD
 ################################################################################
-pacf(pdd$Peak.Daily.Demand)
-# best_stat_pdd
-
 # First 1 very sig
-report(ar_1_pdd <- model(pdd, AR(Peak.Daily.Demand~order(p = 1))))
+# report(ar_1_pdd <- model(pdd, AR(Peak.Daily.Demand~order(p = 1))))
+ar_1_pdd = readRDS(file = "ar_1_pdd.RDS")
+report(ar_1_pdd)
 ar_1_pdd_augment = augment(ar_1_pdd)
 res_plot(ar_1_pdd, ar_1_pdd_augment)
-# mean is 0
-# lots of correlation
-ar_1_pdd_augment |> features(.innov, box_pierce)
+mean(ar_1_pdd_augment$.innov, na.rm = TRUE)
 ar_1_pdd_augment |> features(.innov, ljung_box)
+qq(ar_1_ugo_augment$.innov)
+# saveRDS(ar_1_pdd, file = "ar_1_pdd.RDS")
 
 # Then 8
-report(ar_8_pdd <- model(pdd, AR(Peak.Daily.Demand~order(8))))
+# report(ar_8_pdd <- model(pdd, AR(Peak.Daily.Demand~order(8))))
+ar_8_pdd = readRDS(file = "ar_8_pdd.RDS")
+report(ar_8_pdd)
 ar_8_pdd_augment = augment(ar_8_pdd)
 res_plot(ar_8_pdd, ar_8_pdd_augment)
-# mean is 0
-# little correlation
-ar_8_pdd_augment |> features(.innov, box_pierce)
+mean(ar_8_pdd_augment$.innov, na.rm = TRUE)
 ar_8_pdd_augment |> features(.innov, ljung_box)
+qq(ar_8_pdd_augment$.innov)
+# saveRDS(ar_8_pdd, file = "ar_8_pdd.RDS")
 # good!
 
 # Then 15
-report(ar_15_pdd <- model(pdd, AR(Peak.Daily.Demand~order(15))))
+# report(ar_15_pdd <- model(pdd, AR(Peak.Daily.Demand~order(15))))
+ar_15_pdd = readRDS(file = "ar_15_pdd.RDS")
+report(ar_15_pdd)
 ar_15_pdd_augment = augment(ar_15_pdd)
 res_plot(ar_15_pdd, ar_15_pdd_augment)
-# mean is 0
-# little correlation
-ar_15_pdd_augment |> features(.innov, box_pierce)
+mean(ar_15_pdd_augment$.innov, na.rm = TRUE)
 ar_15_pdd_augment |> features(.innov, ljung_box)
+qq(ar_15_pdd_augment$.innov)
+# saveRDS(ar_15_pdd, file = "ar_15_pdd.RDS")
 
 # Then 50
-report(ar_50_pdd <- model(pdd, AR(Peak.Daily.Demand~order(50))))
+# report(ar_50_pdd <- model(pdd, AR(Peak.Daily.Demand~order(50))))
+ar_50_pdd = readRDS(file = "ar_50_pdd.RDS")
+report(ar_50_pdd)
 ar_50_pdd_augment = augment(ar_50_pdd)
 res_plot(ar_50_pdd, ar_50_pdd_augment)
-# mean(ar_50_pdd_augment$.innov, na.rm = TRUE)
-# mean is 0
-# little correlation
-ar_50_pdd_augment |> features(.innov, box_pierce)
+mean(ar_50_pdd_augment$.innov, na.rm = TRUE)
 ar_50_pdd_augment |> features(.innov, ljung_box)
+qq(ar_50_pdd_augment$.innov)
+# saveRDS(ar_50_pdd, file = "ar_50_pdd.RDS")
 # good!
 
 # Then 225
-report(ar_225_pdd <- model(pdd, AR(Peak.Daily.Demand~order(225))))
+# report(ar_225_pdd <- model(pdd, AR(Peak.Daily.Demand~order(225))))
+ar_225_pdd = readRDS(file = "ar_225_pdd.RDS")
+report(ar_225_pdd)
 ar_225_pdd_augment = augment(ar_225_pdd)
 res_plot(ar_225_pdd, ar_225_pdd_augment)
-# mean is 0
-# little correlation
-ar_225_pdd_augment |> features(.innov, box_pierce)
+mean(ar_225_pdd_augment$.innov, na.rm = TRUE)
 ar_225_pdd_augment |> features(.innov, ljung_box)
+qq(ar_225_pdd_augment$.innov)
+# saveRDS(ar_225_pdd, file = "ar_225_pdd.RDS")
 
-forecast(ar_15_pdd, h = 31) |> autoplot(pdd)
-# not terrible
 
 ################################################################################
 # MA UGO
 ################################################################################
-acf(ugo$Unplanned.Generation.Outages, lag.max = 500)
-
 # 24
-report(ma_24_ugo    <- model(ugo, ARIMA(Unplanned.Generation.Outages~ 0 + pdq(0, 0,24) + PDQ(0, 0, 0))))
+# report(ma_24_ugo    <- model(ugo, ARIMA(Unplanned.Generation.Outages~ 0 + pdq(0, 0,24) + PDQ(0, 0, 0))))
+ma_24_ugo = readRDS(file = "ma_24_ugo.RDS")
+report(ma_24_ugo)
 ma_24_ugo_augment = augment(ma_24_ugo)
 res_plot(ma_24_ugo, ma_24_ugo_augment)
 mean(ma_24_ugo_augment$.innov, na.rm = TRUE)
-# mean is 0
-# little correlation
-ma_24_ugo_augment |> features(.innov, box_pierce)
 ma_24_ugo_augment |> features(.innov, ljung_box)
-# saveRDS(ma_50_ugo, file = "ma_50_ugo.RDS")
+qq(ma_24_ugo_augment$.innov)
+# saveRDS(ma_24_ugo, file = "ma_24_ugo.RDS")
 
 # 48
-report(ma_48_ugo  <- model(ugo, ARIMA(Unplanned.Generation.Outages~ 0 + pdq(0, 0, 48) + PDQ(0, 0, 0))))
+# report(ma_48_ugo  <- model(ugo, ARIMA(Unplanned.Generation.Outages~ 0 + pdq(0, 0, 48) + PDQ(0, 0, 0))))
+ma_48_ugo = readRDS(file = "ma_48_ugo.RDS")
+report(ma_48_ugo)
 ma_48_ugo_augment = augment(ma_48_ugo)
 res_plot(ma_48_ugo, ma_48_ugo_augment)
-# mean is 0
-# little correlation
-ma_48_ugo_augment |> features(.innov, box_pierce)
+mean(ma_48_ugo_augment$.innov, na.rm = TRUE)
 ma_48_ugo_augment |> features(.innov, ljung_box)
-saveRDS(ma_48_ugo, file = "ma_48_ugo.RDS")
-#
+qq(ma_48_ugo_augment$.innov)
+# ma_48_ugo = saveRDS(ma_48_ugo, file = "ma_48_ugo.RDS")
+
 # # 350 - highest can be fitted
 # report(ma_350_ugo  <- model(ugo, ARIMA(Unplanned.Generation.Outages~ 0 + pdq(0, 0, 350) + PDQ(0, 0, 0))))
 # ma_350_ugo_augment = augment(ma_350_ugo)
@@ -426,27 +470,27 @@ saveRDS(ma_48_ugo, file = "ma_48_ugo.RDS")
 ################################################################################
 # MA PDD
 ################################################################################
-acf(pdd$Peak.Daily.Demand, lag.max = 500)
-
 # 7 - first close to zero
-report(ma_7_pdd    <- model(pdd, ARIMA(Peak.Daily.Demand~ 0 + pdq(0, 0, 7) + PDQ(0, 0, 0))))
+# report(ma_7_pdd    <- model(pdd, ARIMA(Peak.Daily.Demand~ 0 + pdq(0, 0, 7) + PDQ(0, 0, 0))))
+ma_7_pdd = readRDS(file = "ma_7_pdd.RDS")
+report(ma_7_pdd)
 ma_7_pdd_augment = augment(ma_7_pdd)
 res_plot(ma_7_pdd, ma_7_pdd_augment)
-# mean is 0
-# little correlation
-ma_7_pdd_augment |> features(.innov, box_pierce)
+mean(ma_7_pdd_augment$.innov, na.rm = TRUE)
 ma_7_pdd_augment |> features(.innov, ljung_box)
-# saveRDS(ma_90_pdd, file = "ma_90_pdd.RDS")
+qq(ma_7_pdd_augment$.innov)
+# saveRDS(ma_7_pdd, file = "ma_7_pdd.RDS")
 
 # 14 - first under sig
-report(ma_14_pdd  <- model(pdd, ARIMA(Peak.Daily.Demand~ 0 + pdq(0, 0, 14) + PDQ(0, 0, 0))))
+# report(ma_14_pdd  <- model(pdd, ARIMA(Peak.Daily.Demand~ 0 + pdq(0, 0, 14) + PDQ(0, 0, 0))))
+ma_14_pdd = readRDS(file = "ma_14_pdd.RDS")
+report(ma_14_pdd)
 ma_14_pdd_augment = augment(ma_14_pdd)
 res_plot(ma_14_pdd, ma_14_pdd_augment)
-# mean is 0
-# little correlation
-ma_14_pdd_augment |> features(.innov, box_pierce)
+mean(ma_14_pdd_augment$.innov, na.rm = TRUE)
 ma_14_pdd_augment |> features(.innov, ljung_box)
-# saveRDS(ma_66_pdd, file = "ma_66_pdd.RDS")
+qq(ma_14_pdd_augment$.innov)
+# saveRDS(ma_14_pdd, file = "ma_14_pdd.RDS")
 
 # 275 - second close to zero
 # report(ma_275_pdd  <- model(pdd, ARIMA(Peak.Daily.Demand~ 0 + pdq(0, 0, 275) + PDQ(0, 0, 0))))
@@ -458,84 +502,311 @@ ma_14_pdd_augment |> features(.innov, ljung_box)
 # ma_275_pdd_augment |> features(.innov, ljung_box)
 # saveRDS(ma_275_pdd, file = "ma_275_pdd.RDS")
 
-# Can't pick up trend
-# forecast(, h = 365) |> autoplot()
+################################################################################
+# ARMA PDD
+################################################################################
+
+# ARMA_2_7_pdd = Arima(pdd$Peak.Daily.Demand, order=c(2,0,7), seasonal=list(order=c(0,0,0),period=NA),
+#              method="ML")
+ARMA_2_7_pdd = readRDS(file = "ARMA_2_7_pdd.RDS")
+ARMA_2_7_pdd
+ARMA_2_7_pdd_augment = resid(ARMA_2_7_pdd)
+res_plot2(pdd, ARMA_2_7_pdd_augment)
+mean(resid(ARMA_2_7_pdd))
+Box.test(resid(ARMA_2_7_pdd), type = "Ljung-Box")
+qq(ARMA_2_7_pdd_augment)
+# saveRDS(ARMA_2_7_pdd, file = "ARMA_2_7_pdd.RDS")
+
+# ARMA_2_14_pdd = Arima(pdd$Peak.Daily.Demand, order=c(2,0,14), seasonal=list(order=c(0,0,0),period=NA),
+#       method="ML")
+ARMA_2_14_pdd = readRDS(file = "ARMA_2_14_pdd.RDS")
+ARMA_2_14_pdd
+ARMA_2_14_pdd_augment = resid(ARMA_2_14_pdd)
+res_plot2(pdd, ARMA_2_14_pdd_augment)
+mean(resid(ARMA_2_14_pdd))
+Box.test(resid(ARMA_2_14_pdd), type = "Ljung-Box")
+qq(ARMA_2_14_pdd_augment)
+# saveRDS(ARMA_2_14_pdd, file = "ARMA_2_14_pdd.RDS")
+
+
+# report(ARMA_25_7_pdd  <- model(pdd, ARIMA(Peak.Daily.Demand ~ 0 + pdq(25,0,7) + PDQ(0, 0, 0))))
+ARMA_25_7_pdd = readRDS(file = "ARMA_25_7_pdd.RDS")
+report(ARMA_25_7_pdd)
+ARMA_25_7_pdd_augment = augment(ARMA_25_7_pdd)
+res_plot(ARMA_25_7_pdd, ARMA_25_7_pdd_augment)
+mean(ARMA_25_7_pdd_augment$.innov, na.rm = TRUE)
+ARMA_25_7_pdd_augment |> features(.innov, ljung_box)
+qq(ARMA_25_7_pdd_augment$.innov)
+# saveRDS(ARMA_25_7_pdd, file = "ARMA_25_7_pdd.RDS")
+
+
+# report(ARMA_25_14_pdd  <- model(pdd, ARIMA(Peak.Daily.Demand ~ 0 + pdq(25,0,14) + PDQ(0, 0, 0))))
+ARMA_25_14_pdd = readRDS(file = "ARMA_25_14_pdd.RDS")
+report(ARMA_25_14_pdd)
+ARMA_25_14_pdd_augment = augment(ARMA_25_14_pdd)
+res_plot(ARMA_25_14_pdd, ARMA_25_14_pdd_augment)
+mean(ARMA_25_14_pdd_augment$.innov, na.rm = TRUE)
+ARMA_25_14_pdd_augment |> features(.innov, ljung_box)
+qq(ARMA_25_14_pdd_augment$.innov)
+# saveRDS(ARMA_25_14_pdd, file = "ARMA_25_14_pdd.RDS")
+
+
+# (ARMA_6_6_pdd = Arima(pdd$Peak.Daily.Demand, order=c(6,0,6), seasonal=list(order=c(0,0,0),period=NA),
+#                       method="ML"))
+ARMA_6_6_pdd = readRDS(file = "ARMA_6_6_pdd.RDS")
+ARMA_6_6_pdd
+ARMA_6_6_pdd_augment = resid(ARMA_6_6_pdd)
+res_plot2(pdd, ARMA_6_6_pdd_augment)
+mean(ARMA_6_6_pdd_augment)
+Box.test(ARMA_6_6_pdd_augment, type = "Ljung-Box")
+qq(ARMA_6_6_pdd_augment)
+# saveRDS(ARMA_6_6_pdd, file = "ARMA_6_6_pdd.RDS")
+
+# ARMA_7_7_pdd = Arima(pdd$Peak.Daily.Demand, order=c(7,0,7), seasonal=list(order=c(0,0,0),period=NA),
+#                       method="ML")
+ARMA_7_7_pdd = readRDS(file = "ARMA_7_7_pdd.RDS")
+ARMA_7_7_pdd
+ARMA_7_7_pdd_augment = resid(ARMA_7_7_pdd)
+res_plot2(pdd, ARMA_7_7_pdd_augment)
+mean(ARMA_7_7_pdd_augment)
+Box.test(ARMA_7_7_pdd_augment, type = "Ljung-Box")
+qq(ARMA_7_7_pdd_augment)
+# saveRDS(ARMA_7_7_pdd, file = "ARMA_7_7_pdd.RDS")
+
 
 ################################################################################
-# ARMA UGO STAT
+# ARMA UGO
 ################################################################################
-acf(ugo$Unplanned.Generation.Outages, lag.max = 100)
-pacf(ugo$Unplanned.Generation.Outages, lag.max = 100)
+# report(ARMA_5_1_ugo    <- model(ugo, ARIMA(Unplanned.Generation.Outages ~ 0 + pdq(5,0,1) + PDQ(0, 0, 0))))
+ARMA_5_1_ugo = readRDS(file = "ARMA_5_1_ugo.RDS")
+report(ARMA_5_1_ugo)
+ARMA_5_1_ugo_augment = augment(ARMA_5_1_ugo)
+res_plot(ARMA_5_1_ugo, ARMA_5_1_ugo_augment)
+mean(ARMA_5_1_ugo_augment$.innov, na.rm = TRUE)
+ARMA_5_1_ugo_augment |> features(.innov, ljung_box)
+qq(ARMA_5_1_ugo_augment$.innov)
+# saveRDS(ARMA_5_1_ugo, file = "ARMA_5_1_ugo.RDS")
 
-report(ARMA_1_1_ugo  <- model(ugo_stat_no_gaps, ARIMA(stat~0 + pdq(1,0,1))))
 
-report(ARMA_24_25_ugo  <- model(ugo_stat_no_gaps, ARIMA(stat~0 + pdq(24,0,25))))
+# report(ARMA_12_2_ugo   <- model(ugo, ARIMA(Unplanned.Generation.Outages ~ 0 + pdq(12,0,2) + PDQ(0, 0, 0))))
+ARMA_12_2_ugo = readRDS(file = "ARMA_12_2_ugo.RDS")
+report(ARMA_12_2_ugo)
+ARMA_12_2_ugo_augment = augment(ARMA_12_2_ugo)
+res_plot(ARMA_12_2_ugo, ARMA_12_2_ugo_augment)
+mean(ARMA_12_2_ugo_augment$.innov, na.rm = TRUE)
+ARMA_12_2_ugo_augment |> features(.innov, ljung_box)
+qq(ARMA_12_2_ugo_augment$.innov)
+# saveRDS(ARMA_12_2_ugo, file = "ARMA_12_2_ugo.RDS")
 
-# Can't pick up trend
-forecast(ARMA_1_1_ugo, h = 24*365) |> autoplot(ugo_stat_no_gaps)
 
-################################################################################
-# ARMA PDD STAT
-################################################################################
-acf(pdd_stat_no_gaps$stat, lag.max = 10)
-pacf(pdd_stat_no_gaps$stat, lag.max = 10)
+# report(ARMA_12_12_ugo  <- model(ugo, ARIMA(Unplanned.Generation.Outages ~ 0 + pdq(12,0,12) + PDQ(0, 0, 0))))
+ARMA_12_12_ugo = readRDS(file = "ARMA_12_12_ugo.RDS")
+report(ARMA_12_12_ugo)
+ARMA_12_12_ugo_augment = augment(ARMA_12_12_ugo)
+res_plot(ARMA_12_12_ugo, ARMA_12_12_ugo_augment)
+mean(ARMA_12_12_ugo_augment$.innov, na.rm = TRUE)
+ARMA_12_12_ugo_augment |> features(.innov, ljung_box)
+qq(ARMA_12_12_ugo_augment$.innov)
+# saveRDS(ARMA_12_12_ugo, file = "ARMA_12_12_ugo.RDS")
 
-# First 2 very sig
-report(ARMA_1_1_pdd  <- model(pdd_stat_no_gaps, ARIMA(stat~0 + pdq(1,0,1))))
 
-report(ARMA_21_7_pdd  <- model(pdd_stat_no_gaps, ARIMA(stat~0 + pdq(1,0,7))))
+# report(ARMA_24_2_ugo   <- model(ugo, ARIMA(Unplanned.Generation.Outages ~ 0 + pdq(24,0,2) + PDQ(0, 0, 0))))
+ARMA_24_2_ugo = readRDS(file = "ARMA_24_2_ugo.RDS")
+report(ARMA_24_2_ugo)
+ARMA_24_2_ugo_augment = augment(ARMA_24_2_ugo)
+res_plot(ARMA_24_2_ugo, ARMA_24_2_ugo_augment)
+mean(ARMA_24_2_ugo_augment$.innov, na.rm = TRUE)
+ARMA_24_2_ugo_augment |> features(.innov, ljung_box)
+qq(ARMA_24_2_ugo_augment$.innov)
+# saveRDS(ARMA_24_2_ugo, file = "ARMA_24_2_ugo.RDS")
 
-# Can't pick up trend
-forecast(ARMA_1_1_pdd, h = 365) |> autoplot(pdd_stat_no_gaps)
+
+# report(ARMA_24_12_ugo  <- model(ugo, ARIMA(Unplanned.Generation.Outages ~ 0 + pdq(24,0,12) + PDQ(0, 0, 0))))
+ARMA_24_12_ugo = readRDS(file = "ARMA_24_12_ugo.RDS")
+report(ARMA_24_12_ugo)
+ARMA_24_12_ugo_augment = augment(ARMA_24_12_ugo)
+res_plot(ARMA_24_12_ugo, ARMA_24_12_ugo_augment)
+mean(ARMA_24_12_ugo_augment$.innov, na.rm = TRUE)
+ARMA_24_12_ugo_augment |> features(.innov, ljung_box)
+qq(ARMA_24_12_ugo_augment$.innov)
+# saveRDS(ARMA_24_12_ugo, file = "ARMA_24_12_ugo.RDS")
+
+
+# report(ARMA_24_24_ugo  <- model(ugo, ARIMA(Unplanned.Generation.Outages ~ 0 + pdq(24,0,24) + PDQ(0, 0, 0))))
+ARMA_24_24_ugo = readRDS(file = "ARMA_24_24_ugo.RDS")
+report(ARMA_24_24_ugo)
+ARMA_24_24_ugo_augment = augment(ARMA_24_24_ugo)
+res_plot(ARMA_24_24_ugo, ARMA_24_24_ugo_augment)
+mean(ARMA_24_24_ugo_augment$.innov, na.rm = TRUE)
+ARMA_24_24_ugo_augment |> features(.innov, ljung_box)
+qq(ARMA_24_24_ugo_augment$.innov)
+# saveRDS(ARMA_24_24_ugo, file = "ARMA_24_24_ugo.RDS")
 
 ################################################################################
 # ARIMA UGO
 ################################################################################
+report(model(ugo, ARIMA(Unplanned.Generation.Outages ~ 0 + pdq(6,0,2) + PDQ(0, 0, 0))))
+# report(ARIMA_5_1_ugo    <- model(ugo, ARIMA(Unplanned.Generation.Outages ~ 0 + pdq(5,1,1) + PDQ(0, 0, 0))))
+ARIMA_5_1_ugo = readRDS(file = "ARIMA_5_1_ugo.RDS")
+report(ARIMA_5_1_ugo)
+ARIMA_5_1_ugo_augment = augment(ARIMA_5_1_ugo)
+res_plot(ARIMA_5_1_ugo, ARIMA_5_1_ugo_augment)
+mean(ARIMA_5_1_ugo_augment$.innov, na.rm = TRUE)
+ARIMA_5_1_ugo_augment |> features(.innov, ljung_box)
+qq(ARIMA_5_1_ugo_augment$.innov)
+# saveRDS(ARIMA_5_1_ugo, file = "ARIMA_5_1_ugo.RDS")
 
-ARIMA_UGO <- ugo |>
-  model(stepwise = ARIMA(Unplanned.Generation.Outages),
-        search = ARIMA(Unplanned.Generation.Outages, stepwise=FALSE))
 
-forecast(ARIMA_UGO, h = 24*365) |> autoplot(ugo)
+# report(ARIMA_12_2_ugo   <- model(ugo, ARIMA(Unplanned.Generation.Outages ~ 0 + pdq(12,1,2) + PDQ(0, 0, 0))))
+ARIMA_12_2_ugo = readRDS(file = "ARIMA_12_2_ugo.RDS")
+report(ARIMA_12_2_ugo)
+ARIMA_12_2_ugo_augment = augment(ARIMA_12_2_ugo)
+res_plot(ARIMA_12_2_ugo, ARIMA_12_2_ugo_augment)
+mean(ARIMA_12_2_ugo_augment$.innov, na.rm = TRUE)
+ARIMA_12_2_ugo_augment |> features(.innov, ljung_box)
+qq(ARIMA_12_2_ugo_augment$.innov)
+# saveRDS(ARIMA_12_2_ugo, file = "ARIMA_12_2_ugo.RDS")
+
+
+# report(ARIMA_12_12_ugo   <- model(ugo, ARIMA(Unplanned.Generation.Outages ~ 0 + pdq(12,1,12) + PDQ(0, 0, 0))))
+ARIMA_12_12_ugo = readRDS(file = "ARIMA_12_12_ugo.RDS")
+report(ARIMA_12_12_ugo)
+ARIMA_12_12_ugo_augment = augment(ARIMA_12_12_ugo)
+res_plot(ARIMA_12_12_ugo, ARIMA_12_12_ugo_augment)
+mean(ARIMA_12_12_ugo_augment$.innov, na.rm = TRUE)
+ARIMA_12_12_ugo_augment |> features(.innov, ljung_box)
+qq(ARIMA_12_12_ugo_augment$.innov)
+# saveRDS(ARIMA_12_12_ugo, file = "ARIMA_12_12_ugo.RDS")
+
+
+# report(ARIMA_24_2_ugo   <- model(ugo, ARIMA(Unplanned.Generation.Outages ~ 0 + pdq(24,1,2) + PDQ(0, 0, 0))))
+ARIMA_24_2_ugo = readRDS(file = "ARIMA_24_2_ugo.RDS")
+report(ARIMA_24_2_ugo)
+ARIMA_24_2_ugo_augment = augment(ARIMA_24_2_ugo)
+res_plot(ARIMA_24_2_ugo, ARIMA_24_2_ugo_augment)
+mean(ARIMA_24_2_ugo_augment$.innov, na.rm = TRUE)
+ARIMA_24_2_ugo_augment |> features(.innov, ljung_box)
+qq(ARIMA_24_2_ugo_augment$.innov)
+# saveRDS(ARIMA_24_2_ugo, file = "ARIMA_24_2_ugo.RDS")
+
+
+# report(ARIMA_12_12_ugo  <- model(ugo, ARIMA(Unplanned.Generation.Outages ~ 0 + pdq(12,1,12) + PDQ(0, 0, 0))))
+# ARIMA_12_12_ugo_augment = augment(ARIMA_12_12_ugo)
+# res_plot(ARIMA_12_12_ugo, ARIMA_12_12_ugo_augment)
+# mean(ARIMA_12_12_ugo_augment$.innov, na.rm = TRUE)
+# ARIMA_12_12_ugo_augment |> features(.innov, ljung_box)
+# saveRDS(ARIMA_12_12_ugo, file = "ARIMA_12_12_ugo.RDS")
+
+
+# report(ARIMA_24_12_ugo  <- model(ugo, ARIMA(Unplanned.Generation.Outages ~ 0 + pdq(24,1,12) + PDQ(0, 0, 0))))
+ARIMA_24_12_ugo = readRDS(file = "ARIMA_24_12_ugo.RDS")
+report(ARIMA_24_12_ugo)
+ARIMA_24_12_ugo_augment = augment(ARIMA_24_12_ugo)
+res_plot(ARIMA_24_12_ugo, ARIMA_24_12_ugo_augment)
+mean(ARIMA_24_12_ugo_augment$.innov, na.rm = TRUE)
+ARIMA_24_12_ugo_augment |> features(.innov, ljung_box)
+qq(ARIMA_24_12_ugo_augment$.innov)
+# saveRDS(ARIMA_24_12_ugo, file = "ARIMA_24_12_ugo.RDS")
+
+
+# report(ARIMA_24_24_ugo  <- model(ugo, ARIMA(Unplanned.Generation.Outages ~ 0 + pdq(24,1,24) + PDQ(0, 0, 0))))
+ARIMA_24_24_ugo = readRDS(file = "ARIMA_24_24_ugo.RDS")
+report(ARIMA_24_24_ugo)
+ARIMA_24_24_ugo_augment = augment(ARIMA_24_24_ugo)
+res_plot(ARIMA_24_24_ugo, ARIMA_24_24_ugo_augment)
+mean(ARIMA_24_24_ugo_augment$.innov, na.rm = TRUE)
+ARIMA_24_24_ugo_augment |> features(.innov, ljung_box)
+qq(ARIMA_24_24_ugo_augment$.innov)
+# saveRDS(ARIMA_24_24_ugo, file = "ARIMA_24_24_ugo.RDS")
+
 
 ################################################################################
-# ARIMA UGO STAT
+# ARIMA PDD
 ################################################################################
 
-ARIMA_UGO_stat <- ugo_stat_no_gaps |>
-  model(stepwise = ARIMA(stat),
-        search = ARIMA(stat, stepwise=FALSE))
+# report(ARIMA_25_7_pdd  <- model(pdd, ARIMA(Peak.Daily.Demand ~ 0 + pdq(25,1,7) + PDQ(0, 0, 0))))
+# ARIMA_25_7_pdd = readRDS(file = "ARIMA_25_7_pdd.RDS")
+# report(ARIMA_25_7_pdd)
+# ARIMA_25_7_pdd_augment = augment(ARIMA_25_7_pdd)
+# res_plot(ARIMA_25_7_pdd, ARIMA_25_7_pdd_augment)
+# mean(ARIMA_25_7_pdd_augment$.innov, na.rm = TRUE)
+# ARIMA_25_7_pdd_augment |> features(.innov, ljung_box)
+# saveRDS(ARIMA_25_7_pdd, file = "ARIMA_25_7_pdd.RDS")
 
-forecast(ARIMA_UGO_stat, h = 24*365) |> autoplot(ugo_stat_no_gaps)
+# ARIMA_25_7_pdd = Arima(pdd$Peak.Daily.Demand, order=c(25,1,7), seasonal=list(order=c(0,0,0),period=NA),
+#                  method="CSS")
+ARIMA_25_7_pdd = readRDS(file = "ARIMA_25_7_pdd.RDS")
+ARIMA_25_7_pdd
+aic(ARIMA_25_7_pdd$loglik, 25, 7, "aic" ,nrow(pdd))
+aic(ARIMA_25_7_pdd$loglik, 25, 7, "aicc",nrow(pdd))
+aic(ARIMA_25_7_pdd$loglik, 25, 7, "bic" ,nrow(pdd))
+ARIMA_25_7_pdd_augment = resid(ARIMA_25_7_pdd)
+res_plot2(pdd, ARIMA_25_7_pdd_augment)
+mean(resid(ARIMA_25_7_pdd))
+Box.test(resid(ARIMA_25_7_pdd), type = "Ljung-Box")
+qq(ARIMA_25_7_pdd_augment)
+# saveRDS(ARIMA_25_7_pdd, file = "ARIMA_25_7_pdd.RDS")
 
-################################################################################
-# ARIMA PDD STAT
-################################################################################
+# report(ARIMA_25_24_pdd  <- model(pdd, ARIMA(Peak.Daily.Demand ~ 0 + pdq(25,1,24) + PDQ(0, 0, 0))))
+# ARIMA_25_24_pdd = readRDS(file = "ARIMA_25_24_pdd.RDS")
+# report(ARIMA_25_24_pdd)
+# ARIMA_25_24_pdd_augment = augment(ARIMA_25_24_pdd)
+# res_plot(ARIMA_25_24_pdd, ARIMA_25_24_pdd_augment)
+# mean(ARIMA_25_24_pdd_augment$.innov, na.rm = TRUE)
+# ARIMA_25_24_pdd_augment |> features(.innov, ljung_box)
+# saveRDS(ARIMA_25_24_pdd, file = "ARIMA_25_24_pdd.RDS")
 
-ARIMA_PDD <- pdd |>
-  model(stepwise = ARIMA(Peak.Daily.Demand),
-        search = ARIMA(Peak.Daily.Demand, stepwise=FALSE))
+# ARIMA_25_14_pdd = Arima(pdd$Peak.Daily.Demand, order=c(25,1,14), seasonal=list(order=c(0,0,0),period=NA),
+#                        method="ML")
+ARIMA_25_14_pdd = readRDS(file = "ARIMA_25_14_pdd.RDS")
+ARIMA_25_14_pdd
+ARIMA_25_14_pdd_augment = resid(ARIMA_25_14_pdd)
+res_plot2(pdd, ARIMA_25_14_pdd_augment)
+mean(resid(ARIMA_25_14_pdd))
+Box.test(resid(ARIMA_25_14_pdd), type = "Ljung-Box")
+qq(ARIMA_25_14_pdd_augment)
+# saveRDS(ARIMA_25_14_pdd, file = "ARIMA_25_14_pdd.RDS")
 
-forecast(ARIMA_PDD, h = 365) |> autoplot(pdd)
+# report(ARIMA_7_7_pdd  <- model(pdd, ARIMA(Peak.Daily.Demand ~ 0 + pdq(7,1,7) + PDQ(0, 0, 0))))
+# ARIMA_7_7_pdd = readRDS(file = "ARIMA_7_7_pdd.RDS")
+# report(ARIMA_7_7_pdd)
+# ARIMA_7_7_pdd_augment = augment(ARIMA_7_7_pdd)
+# res_plot(ARIMA_7_7_pdd, ARIMA_7_7_pdd_augment)
+# mean(ARIMA_7_7_pdd_augment$.innov, na.rm = TRUE)
+# ARIMA_7_7_pdd_augment |> features(.innov, ljung_box)
+# saveRDS(ARIMA_7_7_pdd, file = "ARIMA_7_7_pdd.RDS")
 
-################################################################################
-# ARIMA PDD STAT
-################################################################################
+# ARIMA_7_7_pdd = Arima(pdd$Peak.Daily.Demand, order=c(7,1,7), seasonal=list(order=c(0,0,0),period=NA),
+#                         method="ML")
+ARIMA_7_7_pdd = readRDS(file = "ARIMA_7_7_pdd.RDS")
+ARIMA_7_7_pdd
+ARIMA_7_7_pdd_augment = resid(ARIMA_7_7_pdd)
+res_plot2(pdd, ARIMA_7_7_pdd_augment)
+mean(resid(ARIMA_7_7_pdd))
+Box.test(resid(ARIMA_7_7_pdd), type = "Ljung-Box")
+qq(ARIMA_7_7_pdd_augment)
+# saveRDS(ARIMA_7_7_pdd, file = "ARIMA_7_7_pdd.RDS")
 
-ARIMA_PDD_stat <- pdd_stat_no_gaps |>
-  model(stepwise = ARIMA(stat),
-        search = ARIMA(stat, stepwise=FALSE))
+# ARIMA_6_6_pdd = Arima(pdd$Peak.Daily.Demand, order=c(6,1,6), seasonal=list(order=c(0,0,0),period=NA),
+#                       method="ML")
+ARIMA_6_6_pdd = readRDS(file = "ARIMA_6_6_pdd.RDS")
+ARIMA_6_6_pdd
+ARIMA_6_6_pdd_augment = resid(ARIMA_6_6_pdd)
+res_plot2(pdd, ARIMA_6_6_pdd_augment)
+mean(resid(ARIMA_6_6_pdd))
+Box.test(resid(ARIMA_6_6_pdd), type = "Ljung-Box")
+qq(ARIMA_6_6_pdd_augment)
+# saveRDS(ARIMA_6_6_pdd, file = "ARIMA_6_6_pdd.RDS")
 
-forecast(ARIMA_PDD_stat, h = 365) |> autoplot(pdd_stat_no_gaps)
 
-ARIMA_PDD_stat |>
-  select(search) |>
-  gg_tsresiduals()
 
-augment(ARIMA_PDD_stat) |>
-  filter(.model=='search') |>
-  features(.innov, ljung_box, lag = 200, dof = 3)
 
-gg_arma(ARIMA_PDD_stat |> select(search))
 
-?select
+
+
+
+
+
+
+
+
